@@ -25,6 +25,11 @@ const mainNavLinks = [
   },
 ];
 
+type UserProfile = {
+  full_name: string | null;
+  role: string | null;
+};
+
 export async function SiteHeader() {
   const supabase = await createClient();
 
@@ -32,10 +37,25 @@ export async function SiteHeader() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  let profile: UserProfile | null = null;
+
+  if (user) {
+    const { data } = await supabase
+      .from("users")
+      .select("full_name, role")
+      .eq("id", user.id)
+      .maybeSingle<UserProfile>();
+
+    profile = data;
+  }
+
+  const isAdmin = profile?.role === "admin";
+
   const displayName =
-    typeof user?.user_metadata?.full_name === "string"
+    profile?.full_name ??
+    (typeof user?.user_metadata?.full_name === "string"
       ? user.user_metadata.full_name
-      : user?.email ?? "Tài khoản";
+      : user?.email ?? "Tài khoản");
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur">
@@ -57,6 +77,15 @@ export async function SiteHeader() {
               {link.label}
             </Link>
           ))}
+
+          {isAdmin ? (
+            <Link
+              href={routes.admin}
+              className="text-sm font-semibold text-red-600 transition hover:text-red-700"
+            >
+              Admin
+            </Link>
+          ) : null}
         </nav>
 
         <div className="flex items-center gap-2">
@@ -117,6 +146,15 @@ export async function SiteHeader() {
               className="shrink-0 text-sm font-semibold text-slate-600 transition hover:text-slate-950"
             >
               Tài khoản
+            </Link>
+          ) : null}
+
+          {isAdmin ? (
+            <Link
+              href={routes.admin}
+              className="shrink-0 text-sm font-semibold text-red-600 transition hover:text-red-700"
+            >
+              Admin
             </Link>
           ) : null}
         </Container>
